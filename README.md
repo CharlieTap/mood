@@ -47,6 +47,12 @@ writes the frame into `ImageData` and displays it on an HTML canvas.
 
 ## How to play?
 
+You can try the web distribution hosted on Github pages:
+
+https://charlietap.github.io/mood/
+
+Alternatively you can build from source
+
 ### Android
 
 ```shell
