@@ -10,7 +10,9 @@ import io.github.charlietap.chasm.vm.WasmVirtualMachine.Value
 import io.github.charlietap.chasm.vm.codegen.CodegenImport
 import io.github.charlietap.chasm.vm.codegen.FunctionImport
 
-internal class Runtime(private val host: Host) {
+internal class Runtime(
+    private val host: Host,
+) {
     private lateinit var memory: DoomWasmModule.Memory
     private var closed = false
     private var frameWidth = 0

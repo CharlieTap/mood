@@ -12,7 +12,9 @@ fun interface Binary {
 }
 
 @Inject
-class EngineFactory(private val doomBinary: Binary) {
+class EngineFactory(
+    private val doomBinary: Binary,
+) {
     suspend fun create(host: Host): Engine =
         Engine.create(
             binary = doomBinary.load(),
