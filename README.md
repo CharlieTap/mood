@@ -67,8 +67,8 @@ Chasm can maintain a solid 35 fps, but only at the original 320 x 200 resolution
 of both the game simulation and audio is taxing for an interpreter... especially one that
 is constrained from using direct threaded interpretation. But the GPU has plenty of
 headroom, so I've ported (well Codex did anyway) FSR-1 to WebGPU. There is also a very cool
-neural network based upscaler which is able to leverage the NPU via WebNN, if you happen to
-have the hardware you can enable this in chrome with:
+neural network based upscaler which is able to leverage WebNN you can enable this in chrome 
+with:
 
 ```text
 chrome://flags/#web-machine-learning-neural-network
