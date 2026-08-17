@@ -35,7 +35,7 @@ kotlin {
         commonMain {
             dependencies {
                 api(projects.doomRuntime)
-                api(projects.renderer)
+                api(projects.graphics.core)
                 implementation(projects.gameControls)
                 implementation(compose.runtime)
                 implementation(compose.foundation)

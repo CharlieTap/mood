@@ -39,23 +39,42 @@ Compose interface, including the game screen, settings and performance informati
 reusable virtual buttons and joysticks. Android enables these controls, while the web
 application uses a keyboard-focused interface.
 
-Rendering is split into three Kotlin Multiplatform modules:
+Graphics are organised by the role each component plays in the frame pipeline:
 
-- [`renderer`](renderer) contains the shared frontend contract, display settings,
-  viewport calculation, input handling, renderer selection and ordered fallback.
-- [`renderer:webgpu`](renderer/webgpu) contains one shared palette-indexed WebGPU
-  pipeline and WGSL shader. In the browser it uses the WebGPU API
-  and on Android it uses Jetpack WebGPU backed by Dawn/Vulkan.
-- [`renderer:classic`](renderer/classic) contains the conventional platform renderers:
-  Android `Bitmap`/`Canvas` and browser Canvas 2D.
+- [`graphics:core`](graphics/core) contains the shared backend contract, display
+  settings, viewport calculation, input handling, backend selection and fallback.
+- [`graphics:backend:webgpu`](graphics/backend/webgpu) contains the shared
+  palette-indexed WebGPU pipeline and its platform drivers. The browser driver uses
+  the WebGPU API; Android uses Jetpack WebGPU backed by Dawn/Vulkan.
+- [`graphics:backend:classic`](graphics/backend/classic) contains the conventional
+  platform backends: Android `Bitmap`/`Canvas` and browser Canvas 2D.
+- [`graphics:upscaler:fsr1`](graphics/upscaler/fsr1) contributes FidelityFX Super
+  Resolution 1 to the WebGPU pipeline.
+- [`graphics:upscaler:neural`](graphics/upscaler/neural) contributes an experimental
+  ESPCN x3 neural upscaler on the web. It prefers WebNN and runs the same network as
+  WebGPU compute when WebNN is unavailable.
+- [`graphics:effect:crt`](graphics/effect/crt) and
+  [`graphics:effect:enhanced`](graphics/effect/enhanced) contribute optional display
+  effects independently of the selected upscaler.
 
-Browser audio is streamed through an `AudioWorklet`; browsers without worklet support
-fall back to scheduled `AudioBuffer` playback.
 
-I initially wanted to have just one renderer backed by webgpu, but support is not quite
+I initially wanted to have just one renderer backed by WebGPU, but support is not quite
 at 100% across web and android, so I've added a conventional fallback for each of the
 platforms. There's a likely near future where Chasm supports the Component Model and we
-can bake the webgpu calls into the wasm binary itself rather than adapting them.
+can bake the WebGPU calls into the Wasm binary itself rather than adapting them.
+
+Chasm can maintain a solid 35 fps, but only at the original 320 x 200 resolution as the cost
+of both the game simulation and audio is taxing for an interpreter... especially one that
+is constrained from using direct threaded interpretation. But the GPU has plenty of
+headroom, so I've ported (well Codex did anyway) FSR-1 to WebGPU. There is also a very cool
+neural network based upscaler which is able to leverage the NPU via WebNN, if you happen to
+have the hardware you can enable this in chrome with:
+
+```text
+chrome://flags/#web-machine-learning-neural-network
+```
+
+You SHOULD absolutely play with the settings, there's some very cool things you can enable.
 
 ## How to play?
 

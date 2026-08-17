@@ -53,16 +53,17 @@ import com.tap.mood.doom.ui.resources.keyboard_menu_controls
 import com.tap.mood.doom.ui.resources.settings
 import com.tap.mood.doom.ui.settings.SettingsStore
 import com.tap.mood.doom.ui.settings.SettingsWindow
-import com.tap.mood.renderer.DisplaySettings
-import com.tap.mood.renderer.RendererRegistry
-import com.tap.mood.renderer.RendererSurface
+import com.tap.mood.graphics.DisplaySettings
+import com.tap.mood.graphics.GraphicsBackendId
+import com.tap.mood.graphics.GraphicsBackendRegistry
+import com.tap.mood.graphics.GraphicsSurface
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun DoomScreen(
     controller: InstanceController,
     settingsStore: SettingsStore,
-    rendererRegistry: RendererRegistry,
+    graphicsBackends: GraphicsBackendRegistry,
     active: Boolean,
     configuration: Configuration,
     modifier: Modifier = Modifier,
@@ -70,6 +71,11 @@ fun DoomScreen(
     val state by controller.state.collectAsState()
     val settings by settingsStore.settings.collectAsState()
     var settingsVisible by rememberSaveable { mutableStateOf(false) }
+    val onBackendSelected = { backend: GraphicsBackendId ->
+        settingsStore.update { current ->
+            current.copy(display = current.display.copy(backend = backend))
+        }
+    }
 
     LaunchedEffect(active, settingsVisible) {
         controller.setActive(active && !settingsVisible)
@@ -93,7 +99,8 @@ fun DoomScreen(
                     settingsVisible = settingsVisible,
                     configuration = configuration,
                     controller = controller,
-                    rendererRegistry = rendererRegistry,
+                    graphicsBackends = graphicsBackends,
+                    onBackendSelected = onBackendSelected,
                     onShowSettings = { settingsVisible = true },
                     modifier = Modifier.fillMaxWidth().weight(1f),
                 )
@@ -115,7 +122,8 @@ fun DoomScreen(
                 settingsVisible = settingsVisible,
                 configuration = configuration,
                 controller = controller,
-                rendererRegistry = rendererRegistry,
+                graphicsBackends = graphicsBackends,
+                onBackendSelected = onBackendSelected,
                 onShowSettings = { settingsVisible = true },
                 modifier = Modifier.fillMaxSize(),
             )
@@ -124,7 +132,7 @@ fun DoomScreen(
         if (settingsVisible) {
             SettingsWindow(
                 settings = settings,
-                renderers = rendererRegistry.renderers,
+                backends = graphicsBackends.backends,
                 onSettingsChanged = settingsStore::update,
                 onDismiss = { settingsVisible = false },
             )
@@ -139,17 +147,19 @@ private fun DoomGameContent(
     settingsVisible: Boolean,
     configuration: Configuration,
     controller: InstanceController,
-    rendererRegistry: RendererRegistry,
+    graphicsBackends: GraphicsBackendRegistry,
+    onBackendSelected: (GraphicsBackendId) -> Unit,
     onShowSettings: () -> Unit,
     modifier: Modifier,
 ) {
     Box(modifier = modifier) {
         if (state.showsActiveContent(settingsVisible)) {
-            RendererSurface(
-                registry = rendererRegistry,
-                preference = displaySettings.renderer,
+            GraphicsSurface(
+                registry = graphicsBackends,
+                preferredBackend = displaySettings.backend,
                 controller = controller,
                 settings = displaySettings,
+                onBackendSelected = onBackendSelected,
                 modifier = Modifier.fillMaxSize(),
             )
         } else if (state.status != InstanceState.Status.Running) {

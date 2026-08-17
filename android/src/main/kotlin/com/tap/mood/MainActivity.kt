@@ -22,7 +22,7 @@ import androidx.lifecycle.compose.LifecycleStartEffect
 import com.tap.mood.doom.ui.Configuration
 import com.tap.mood.doom.ui.DoomScreen
 import com.tap.mood.doom.ui.settings.SettingsStore
-import com.tap.mood.renderer.RendererRegistry
+import com.tap.mood.graphics.GraphicsBackendRegistry
 import com.tap.mood.viewmodel.MoodViewModel
 import com.tap.mood.viewmodel.MoodViewModelFactory
 import dev.zacsweers.metro.AppScope
@@ -38,7 +38,7 @@ class MainActivity(
     private val viewModelFactory: MoodViewModelFactory,
     private val configuration: Configuration,
     private val settingsStore: SettingsStore,
-    private val rendererRegistry: RendererRegistry,
+    private val graphicsBackends: GraphicsBackendRegistry,
 ) : ComponentActivity() {
     override val defaultViewModelProviderFactory: ViewModelProvider.Factory
         get() = viewModelFactory
@@ -67,7 +67,7 @@ class MainActivity(
                 DoomScreen(
                     controller = moodViewModel,
                     settingsStore = settingsStore,
-                    rendererRegistry = rendererRegistry,
+                    graphicsBackends = graphicsBackends,
                     active = active,
                     configuration = configuration,
                     modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing),

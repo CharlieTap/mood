@@ -24,54 +24,98 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import com.tap.mood.doom.runtime.settings.Border
 import com.tap.mood.doom.runtime.settings.Detail
 import com.tap.mood.doom.ui.resources.Res
 import com.tap.mood.doom.ui.resources.graphics_aspect_corrected
 import com.tap.mood.doom.ui.resources.graphics_aspect_fill
 import com.tap.mood.doom.ui.resources.graphics_aspect_raw
-import com.tap.mood.doom.ui.resources.graphics_classic
-import com.tap.mood.doom.ui.resources.graphics_smooth
 import com.tap.mood.doom.ui.resources.settings_aspect_ratio
+import com.tap.mood.doom.ui.resources.settings_border
 import com.tap.mood.doom.ui.resources.settings_display
+import com.tap.mood.doom.ui.resources.settings_display_effect
 import com.tap.mood.doom.ui.resources.settings_done
+import com.tap.mood.doom.ui.resources.settings_engine
 import com.tap.mood.doom.ui.resources.settings_gamma
 import com.tap.mood.doom.ui.resources.settings_graphic_detail
+import com.tap.mood.doom.ui.resources.settings_graphics_backend
 import com.tap.mood.doom.ui.resources.settings_high
 import com.tap.mood.doom.ui.resources.settings_large
 import com.tap.mood.doom.ui.resources.settings_low
 import com.tap.mood.doom.ui.resources.settings_medium
-import com.tap.mood.doom.ui.resources.settings_performance
-import com.tap.mood.doom.ui.resources.settings_renderer
-import com.tap.mood.doom.ui.resources.settings_renderer_auto
-import com.tap.mood.doom.ui.resources.settings_scaling
 import com.tap.mood.doom.ui.resources.settings_small
 import com.tap.mood.doom.ui.resources.settings_title
-import com.tap.mood.doom.ui.resources.settings_view_size
-import com.tap.mood.renderer.AspectRatio
-import com.tap.mood.renderer.RegisteredRenderer
-import com.tap.mood.renderer.RendererPreference
-import com.tap.mood.renderer.Scaling
+import com.tap.mood.doom.ui.resources.settings_upscaling
+import com.tap.mood.graphics.AspectRatio
+import com.tap.mood.graphics.RegisteredGraphicsBackend
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
 @Composable
 fun SettingsWindow(
     settings: Settings,
-    renderers: List<RegisteredRenderer>,
+    backends: List<RegisteredGraphicsBackend>,
     onSettingsChanged: ((Settings) -> Settings) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val selectedBackend =
+        backends.firstOrNull { it.id == settings.display.backend } ?: backends.first()
+    val capabilities = selectedBackend.backend.capabilities
+    val resolvedDisplay = capabilities.resolve(settings.display)
+
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.fillMaxWidth(0.92f).widthIn(max = 720.dp),
+        properties = DialogProperties(usePlatformDefaultWidth = false),
         title = { Text(stringResource(Res.string.settings_title)) },
         text = {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(20.dp),
-                modifier = Modifier.widthIn(max = 720.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(stringResource(Res.string.settings_display))
+                    ChoiceRow(
+                        label = stringResource(Res.string.settings_graphics_backend),
+                        choices = backends.map { it.backend.displayName },
+                        selectedIndex = backends.indexOf(selectedBackend),
+                        onSelected = { index ->
+                            onSettingsChanged { current ->
+                                current.copy(
+                                    display = current.display.copy(backend = backends[index].id),
+                                )
+                            }
+                        },
+                    )
+                    if (capabilities.upscalers.size > 1) {
+                        ChoiceRow(
+                            label = stringResource(Res.string.settings_upscaling),
+                            choices = capabilities.upscalers.map { it.displayName },
+                            selectedIndex = capabilities.upscalers.indexOfFirst { it.id == resolvedDisplay.upscaler },
+                            onSelected = { index ->
+                                onSettingsChanged { current ->
+                                    current.copy(
+                                        display = current.display.copy(upscaler = capabilities.upscalers[index].id),
+                                    )
+                                }
+                            },
+                        )
+                    }
+                    if (capabilities.effects.size > 1) {
+                        ChoiceRow(
+                            label = stringResource(Res.string.settings_display_effect),
+                            choices = capabilities.effects.map { it.displayName },
+                            selectedIndex = capabilities.effects.indexOfFirst { it.id == resolvedDisplay.effect },
+                            onSelected = { index ->
+                                onSettingsChanged { current ->
+                                    current.copy(
+                                        display = current.display.copy(effect = capabilities.effects[index].id),
+                                    )
+                                }
+                            },
+                        )
+                    }
                     ChoiceRow(
                         label = stringResource(Res.string.settings_aspect_ratio),
                         choices =
@@ -89,48 +133,10 @@ fun SettingsWindow(
                             }
                         },
                     )
-                    ChoiceRow(
-                        label = stringResource(Res.string.settings_scaling),
-                        choices =
-                            listOf(
-                                stringResource(Res.string.graphics_classic),
-                                stringResource(Res.string.graphics_smooth),
-                            ),
-                        selectedIndex = settings.display.scaling.ordinal,
-                        onSelected = { index ->
-                            onSettingsChanged { current ->
-                                current.copy(display = current.display.copy(scaling = Scaling.entries[index]))
-                            }
-                        },
-                    )
-                    val rendererChoices =
-                        listOf(stringResource(Res.string.settings_renderer_auto)) +
-                            renderers.map { it.frontend.displayName }
-                    val rendererPreferences =
-                        listOf(RendererPreference.Auto) +
-                            renderers.map { RendererPreference.Specific(it.id) }
-                    ChoiceRow(
-                        label = stringResource(Res.string.settings_renderer),
-                        choices = rendererChoices,
-                        selectedIndex =
-                            rendererPreferences
-                                .indexOf(settings.display.renderer)
-                                .coerceAtLeast(0),
-                        onSelected = { index ->
-                            onSettingsChanged { current ->
-                                current.copy(
-                                    display =
-                                        current.display.copy(
-                                            renderer = rendererPreferences[index],
-                                        ),
-                                )
-                            }
-                        },
-                    )
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(stringResource(Res.string.settings_performance))
+                    Text(stringResource(Res.string.settings_engine))
                     ChoiceRow(
                         label = stringResource(Res.string.settings_graphic_detail),
                         choices =
@@ -148,7 +154,7 @@ fun SettingsWindow(
                         },
                     )
                     ChoiceRow(
-                        label = stringResource(Res.string.settings_view_size),
+                        label = stringResource(Res.string.settings_border),
                         choices =
                             listOf(
                                 stringResource(Res.string.settings_large),
@@ -195,28 +201,37 @@ private fun ChoiceRow(
     onSelected: (Int) -> Unit,
 ) {
     Text(label, modifier = Modifier.padding(top = 6.dp))
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        choices.forEachIndexed { index, choice ->
-            val selected = index == selectedIndex
-            Surface(
-                color = if (selected) MaterialTheme.colors.primary else Color.Transparent,
-                contentColor = if (selected) MaterialTheme.colors.onPrimary else MaterialTheme.colors.onSurface,
-                border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.4f)),
-                shape = MaterialTheme.shapes.small,
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .heightIn(min = 40.dp)
-                        .selectable(selected = selected, onClick = { onSelected(index) }),
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        choices.withIndex().chunked(3).forEach { rowChoices ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 8.dp),
-                ) {
-                    Text(text = choice, fontSize = 10.sp, maxLines = 1)
+                rowChoices.forEach { (index, choice) ->
+                    val selected = index == selectedIndex
+                    Surface(
+                        color = if (selected) MaterialTheme.colors.primary else Color.Transparent,
+                        contentColor = if (selected) MaterialTheme.colors.onPrimary else MaterialTheme.colors.onSurface,
+                        border =
+                            if (selected) {
+                                null
+                            } else {
+                                BorderStroke(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.4f))
+                            },
+                        shape = MaterialTheme.shapes.small,
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .heightIn(min = 40.dp)
+                                .selectable(selected = selected, onClick = { onSelected(index) }),
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 8.dp),
+                        ) {
+                            Text(text = choice, fontSize = 10.sp, maxLines = 1)
+                        }
+                    }
                 }
             }
         }

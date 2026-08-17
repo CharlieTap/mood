@@ -19,9 +19,13 @@ tasks.register("fmt") {
         ":doom-runtime:fmt",
         ":doom-ui:fmt",
         ":game-controls:fmt",
-        ":renderer:fmt",
-        ":renderer:classic:fmt",
-        ":renderer:webgpu:fmt",
+        ":graphics:core:fmt",
+        ":graphics:backend:classic:fmt",
+        ":graphics:backend:webgpu:fmt",
+        ":graphics:upscaler:fsr1:fmt",
+        ":graphics:upscaler:neural:fmt",
+        ":graphics:effect:crt:fmt",
+        ":graphics:effect:enhanced:fmt",
         ":web:fmt",
     )
 }
@@ -33,7 +37,7 @@ tasks.register("test") {
         ":doom-runtime:jvmTest",
         ":doom-ui:testAndroidHostTest",
         ":game-controls:testAndroidHostTest",
-        ":renderer:testAndroidHostTest",
-        ":renderer:webgpu:testAndroidHostTest",
+        ":graphics:core:testAndroidHostTest",
+        ":graphics:backend:webgpu:testAndroidHostTest",
     )
 }

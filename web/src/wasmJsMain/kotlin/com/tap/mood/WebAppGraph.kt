@@ -3,7 +3,7 @@ package com.tap.mood
 import com.tap.mood.doom.runtime.instance.DefaultInstanceController
 import com.tap.mood.doom.ui.Configuration
 import com.tap.mood.doom.ui.settings.SettingsStore
-import com.tap.mood.renderer.RendererRegistry
+import com.tap.mood.graphics.GraphicsBackendRegistry
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.DependencyGraph
 import dev.zacsweers.metro.Inject
@@ -25,7 +25,7 @@ internal interface WebAppGraph {
 internal class WebApplication(
     val controller: DefaultInstanceController,
     val settingsStore: SettingsStore,
-    val rendererRegistry: RendererRegistry,
+    val graphicsBackends: GraphicsBackendRegistry,
     val uiConfiguration: Configuration,
 ) : AutoCloseable {
     override fun close() = controller.close()
