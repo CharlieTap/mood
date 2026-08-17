@@ -41,7 +41,6 @@ import com.tap.mood.doom.runtime.instance.InstanceController
 import com.tap.mood.doom.runtime.instance.InstanceState
 import com.tap.mood.doom.ui.controls.DoomControls
 import com.tap.mood.doom.ui.performance.PerformanceOverlay
-import com.tap.mood.doom.ui.rendering.Surface
 import com.tap.mood.doom.ui.resources.Res
 import com.tap.mood.doom.ui.resources.doom_error
 import com.tap.mood.doom.ui.resources.doom_idle
@@ -52,15 +51,18 @@ import com.tap.mood.doom.ui.resources.keyboard_confirmation_controls
 import com.tap.mood.doom.ui.resources.keyboard_gameplay_controls
 import com.tap.mood.doom.ui.resources.keyboard_menu_controls
 import com.tap.mood.doom.ui.resources.settings
-import com.tap.mood.doom.ui.settings.DisplaySettings
 import com.tap.mood.doom.ui.settings.SettingsStore
 import com.tap.mood.doom.ui.settings.SettingsWindow
+import com.tap.mood.renderer.DisplaySettings
+import com.tap.mood.renderer.RendererRegistry
+import com.tap.mood.renderer.RendererSurface
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun DoomScreen(
     controller: InstanceController,
     settingsStore: SettingsStore,
+    rendererRegistry: RendererRegistry,
     active: Boolean,
     configuration: Configuration,
     modifier: Modifier = Modifier,
@@ -91,6 +93,7 @@ fun DoomScreen(
                     settingsVisible = settingsVisible,
                     configuration = configuration,
                     controller = controller,
+                    rendererRegistry = rendererRegistry,
                     onShowSettings = { settingsVisible = true },
                     modifier = Modifier.fillMaxWidth().weight(1f),
                 )
@@ -112,6 +115,7 @@ fun DoomScreen(
                 settingsVisible = settingsVisible,
                 configuration = configuration,
                 controller = controller,
+                rendererRegistry = rendererRegistry,
                 onShowSettings = { settingsVisible = true },
                 modifier = Modifier.fillMaxSize(),
             )
@@ -120,6 +124,7 @@ fun DoomScreen(
         if (settingsVisible) {
             SettingsWindow(
                 settings = settings,
+                renderers = rendererRegistry.renderers,
                 onSettingsChanged = settingsStore::update,
                 onDismiss = { settingsVisible = false },
             )
@@ -134,12 +139,19 @@ private fun DoomGameContent(
     settingsVisible: Boolean,
     configuration: Configuration,
     controller: InstanceController,
+    rendererRegistry: RendererRegistry,
     onShowSettings: () -> Unit,
     modifier: Modifier,
 ) {
     Box(modifier = modifier) {
         if (state.showsActiveContent(settingsVisible)) {
-            Surface(controller, displaySettings, Modifier.fillMaxSize())
+            RendererSurface(
+                registry = rendererRegistry,
+                preference = displaySettings.renderer,
+                controller = controller,
+                settings = displaySettings,
+                modifier = Modifier.fillMaxSize(),
+            )
         } else if (state.status != InstanceState.Status.Running) {
             DoomStatus(state)
         }

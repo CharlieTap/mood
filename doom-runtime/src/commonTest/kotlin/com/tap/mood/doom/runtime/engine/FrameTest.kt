@@ -15,6 +15,8 @@ class FrameTest {
                 height = 1,
                 indexedPixels = byteArrayOf(1, 2, 1),
                 palette = palette,
+                rgbaPalette = ByteArray(256 * 4),
+                paletteRevision = 1,
                 bgraPixels = ByteArray(12),
             )
 

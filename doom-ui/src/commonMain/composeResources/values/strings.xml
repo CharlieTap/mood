@@ -12,6 +12,8 @@
     <string name="settings_performance">PERFORMANCE</string>
     <string name="settings_aspect_ratio">Aspect ratio</string>
     <string name="settings_scaling">Scaling</string>
+    <string name="settings_renderer">Renderer</string>
+    <string name="settings_renderer_auto">Auto</string>
     <string name="settings_graphic_detail">Graphic detail</string>
     <string name="settings_view_size">View size</string>
     <string name="settings_gamma">Gamma: %1$d</string>

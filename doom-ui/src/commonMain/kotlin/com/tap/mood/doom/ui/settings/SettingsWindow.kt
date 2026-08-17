@@ -42,16 +42,23 @@ import com.tap.mood.doom.ui.resources.settings_large
 import com.tap.mood.doom.ui.resources.settings_low
 import com.tap.mood.doom.ui.resources.settings_medium
 import com.tap.mood.doom.ui.resources.settings_performance
+import com.tap.mood.doom.ui.resources.settings_renderer
+import com.tap.mood.doom.ui.resources.settings_renderer_auto
 import com.tap.mood.doom.ui.resources.settings_scaling
 import com.tap.mood.doom.ui.resources.settings_small
 import com.tap.mood.doom.ui.resources.settings_title
 import com.tap.mood.doom.ui.resources.settings_view_size
+import com.tap.mood.renderer.AspectRatio
+import com.tap.mood.renderer.RegisteredRenderer
+import com.tap.mood.renderer.RendererPreference
+import com.tap.mood.renderer.Scaling
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
 @Composable
 fun SettingsWindow(
     settings: Settings,
+    renderers: List<RegisteredRenderer>,
     onSettingsChanged: ((Settings) -> Settings) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -93,6 +100,30 @@ fun SettingsWindow(
                         onSelected = { index ->
                             onSettingsChanged { current ->
                                 current.copy(display = current.display.copy(scaling = Scaling.entries[index]))
+                            }
+                        },
+                    )
+                    val rendererChoices =
+                        listOf(stringResource(Res.string.settings_renderer_auto)) +
+                            renderers.map { it.frontend.displayName }
+                    val rendererPreferences =
+                        listOf(RendererPreference.Auto) +
+                            renderers.map { RendererPreference.Specific(it.id) }
+                    ChoiceRow(
+                        label = stringResource(Res.string.settings_renderer),
+                        choices = rendererChoices,
+                        selectedIndex =
+                            rendererPreferences
+                                .indexOf(settings.display.renderer)
+                                .coerceAtLeast(0),
+                        onSelected = { index ->
+                            onSettingsChanged { current ->
+                                current.copy(
+                                    display =
+                                        current.display.copy(
+                                            renderer = rendererPreferences[index],
+                                        ),
+                                )
                             }
                         },
                     )

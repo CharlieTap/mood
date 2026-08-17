@@ -27,6 +27,8 @@ internal class Runtime(
     private var currentMemoryByteCount = 0
     private val paletteBytes = ByteArray(PALETTE_BYTE_COUNT)
     private val palette = IntArray(PALETTE_COLOR_COUNT)
+    private val rgbaPalette = ByteArray(PALETTE_COLOR_COUNT * BYTES_PER_PIXEL)
+    private var paletteRevision = 0
     private val integerBytes = ByteArray(Int.SIZE_BYTES)
     private val customWads = host.wads().map(ByteArray::copyOf)
     private val customWadBytes = customWads.sumOf { wad -> wad.size.toLong() }
@@ -142,6 +144,8 @@ internal class Runtime(
                         frameHeight,
                         frameIndices,
                         palette,
+                        rgbaPalette,
+                        paletteRevision,
                         framePixels,
                     ),
                 )
@@ -362,14 +366,21 @@ internal class Runtime(
     private fun updatePalette() {
         var colorIndex = 0
         var byteIndex = 0
+        var rgbaIndex = 0
         while (colorIndex < palette.size) {
             val red = paletteBytes[byteIndex].toInt() and 0xff
             val green = paletteBytes[byteIndex + 1].toInt() and 0xff
             val blue = paletteBytes[byteIndex + 2].toInt() and 0xff
             palette[colorIndex] = blue or (green shl 8) or (red shl 16)
+            rgbaPalette[rgbaIndex] = red.toByte()
+            rgbaPalette[rgbaIndex + 1] = green.toByte()
+            rgbaPalette[rgbaIndex + 2] = blue.toByte()
+            rgbaPalette[rgbaIndex + 3] = 0xff.toByte()
             colorIndex++
             byteIndex += PALETTE_COMPONENT_COUNT
+            rgbaIndex += BYTES_PER_PIXEL
         }
+        paletteRevision++
     }
 
     private fun readString(values: List<Value>): String {

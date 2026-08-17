@@ -35,6 +35,7 @@ kotlin {
         commonMain {
             dependencies {
                 api(projects.doomRuntime)
+                api(projects.renderer)
                 implementation(projects.gameControls)
                 implementation(compose.runtime)
                 implementation(compose.foundation)
@@ -46,11 +47,6 @@ kotlin {
         commonTest {
             dependencies {
                 implementation(libs.kotlin.test)
-            }
-        }
-        androidMain {
-            dependencies {
-                implementation(libs.androidx.core)
             }
         }
     }

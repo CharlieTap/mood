@@ -39,11 +39,20 @@ Compose interface, including the game screen, settings and performance informati
 reusable virtual buttons and joysticks. Android enables these controls, while the web
 application uses a keyboard-focused interface.
 
-Rendering is one of the few platform-specific parts. The
-[Android renderer](doom-ui/src/androidMain/kotlin/com/tap/mood/doom/ui/rendering/Surface.android.kt)
-copies each frame into a `Bitmap` and draws it with `Canvas`. The
-[web renderer](doom-ui/src/wasmJsMain/kotlin/com/tap/mood/doom/ui/rendering/Surface.wasmJs.kt)
-writes the frame into `ImageData` and displays it on an HTML canvas. 
+Rendering is split into three Kotlin Multiplatform modules:
+
+- [`renderer`](renderer) contains the shared frontend contract, display settings,
+  viewport calculation, input handling, renderer selection and ordered fallback.
+- [`renderer:webgpu`](renderer/webgpu) contains one shared palette-indexed WebGPU
+  pipeline and WGSL shader. In the browser it uses the WebGPU API
+  and on Android it uses Jetpack WebGPU backed by Dawn/Vulkan.
+- [`renderer:classic`](renderer/classic) contains the conventional platform renderers:
+  Android `Bitmap`/`Canvas` and browser Canvas 2D.
+
+I initially wanted to have just one renderer backed by webgpu, but support is not quite
+at 100% across web and android, so I've added a conventional fallback for each of the
+platforms. There's a likely near future where Chasm supports the Component Model and we
+can bake the webgpu calls into the wasm binary itself rather than adapting them.
 
 ## How to play?
 
@@ -56,15 +65,19 @@ Alternatively you can build from source
 ### Android
 
 ```shell
-./gradlew :android:assembleDebug
-adb install -r android/build/outputs/apk/debug/android-debug.apk
+./gradlew :android:assembleRelease
 ```
+
+The release APK is written to `android/build/outputs/apk/release`. It must be signed
+before installation when no release signing configuration is supplied locally.
 
 ### Web
 
 ```shell
-./gradlew :web:wasmJsBrowserDevelopmentRun
+./gradlew :web:wasmJsBrowserDistribution
 ```
+
+The production distribution is written to `web/build/dist/wasmJs/productionExecutable`.
 
 ## Doom source
 

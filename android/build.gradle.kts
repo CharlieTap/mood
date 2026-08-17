@@ -50,6 +50,8 @@ kotlin {
 dependencies {
     implementation(projects.doomRuntime)
     implementation(projects.doomUi)
+    implementation(projects.renderer.classic)
+    implementation(projects.renderer.webgpu)
 
     implementation(libs.bundles.androidx)
     implementation(libs.bundles.compose.ui)

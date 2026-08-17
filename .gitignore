@@ -19,6 +19,7 @@ gradle-app.setting
 /.idea/assetWizardSettings.xml
 /build
 /captures
+/plans/
 
 *.xcworkspacedata
 *.xcuserstate

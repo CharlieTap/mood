@@ -10,6 +10,9 @@ class Frame internal constructor(
     val indexedPixels: ByteArray,
     /** Palette entries encoded as `0x00RRGGBB`. */
     val palette: IntArray,
+    /** Palette entries encoded as tightly packed RGBA8888 for direct GPU upload. */
+    val rgbaPalette: ByteArray,
+    val paletteRevision: Int,
     private val bgraPixels: ByteArray,
 ) {
     private var expanded = false

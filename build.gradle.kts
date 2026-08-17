@@ -19,6 +19,9 @@ tasks.register("fmt") {
         ":doom-runtime:fmt",
         ":doom-ui:fmt",
         ":game-controls:fmt",
+        ":renderer:fmt",
+        ":renderer:classic:fmt",
+        ":renderer:webgpu:fmt",
         ":web:fmt",
     )
 }
@@ -30,5 +33,7 @@ tasks.register("test") {
         ":doom-runtime:jvmTest",
         ":doom-ui:testAndroidHostTest",
         ":game-controls:testAndroidHostTest",
+        ":renderer:testAndroidHostTest",
+        ":renderer:webgpu:testAndroidHostTest",
     )
 }

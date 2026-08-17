@@ -22,6 +22,8 @@ kotlin {
             dependencies {
                 implementation(projects.doomRuntime)
                 implementation(projects.doomUi)
+                implementation(projects.renderer.classic)
+                implementation(projects.renderer.webgpu)
                 implementation(compose.runtime)
                 implementation(compose.material)
                 implementation(compose.ui)

@@ -30,6 +30,7 @@ fun main() {
             DoomScreen(
                 controller = application.controller,
                 settingsStore = application.settingsStore,
+                rendererRegistry = application.rendererRegistry,
                 active = rememberPageActive(),
                 configuration = application.uiConfiguration,
             )
