@@ -49,6 +49,9 @@ Rendering is split into three Kotlin Multiplatform modules:
 - [`renderer:classic`](renderer/classic) contains the conventional platform renderers:
   Android `Bitmap`/`Canvas` and browser Canvas 2D.
 
+Browser audio is streamed through an `AudioWorklet`; browsers without worklet support
+fall back to scheduled `AudioBuffer` playback.
+
 I initially wanted to have just one renderer backed by webgpu, but support is not quite
 at 100% across web and android, so I've added a conventional fallback for each of the
 platforms. There's a likely near future where Chasm supports the Component Model and we

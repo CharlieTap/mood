@@ -68,8 +68,76 @@ private class WebAudioSink(
 
 @JsFun(
     """() => {
-        const player = { context: null, nextTime: 0, active: false, reportedRunning: false };
+        const player = {
+            context: null,
+            node: null,
+            nextTime: 0,
+            active: false,
+            closed: false,
+            workletState: 'idle',
+            pending: [],
+            reportedRunning: false,
+        };
+        player.scheduleFallback = (pcm, frameCount, sampleRate) => {
+            const context = player.context;
+            if (!player.active || context?.state !== 'running') return;
+            const buffer = context.createBuffer(2, frameCount, sampleRate);
+            const left = buffer.getChannelData(0);
+            const right = buffer.getChannelData(1);
+            for (let frame = 0, sample = 0; frame < frameCount; frame++) {
+                left[frame] = pcm[sample++] / 32768;
+                right[frame] = pcm[sample++] / 32768;
+            }
+            const source = context.createBufferSource();
+            source.buffer = buffer;
+            source.connect(context.destination);
+            const startTime = Math.max(player.nextTime, context.currentTime + 0.04);
+            source.start(startTime);
+            player.nextTime = startTime + buffer.duration;
+        };
+        player.flushPending = () => {
+            const pending = player.pending.splice(0);
+            for (const frame of pending) {
+                if (player.workletState === 'ready') {
+                    player.node.port.postMessage(frame, [frame.pcm.buffer]);
+                } else {
+                    player.scheduleFallback(frame.pcm, frame.frameCount, frame.sampleRate);
+                }
+            }
+        };
+        player.ensureContext = () => {
+            if (player.closed) return;
+            if (!player.context) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                player.context = new AudioContext({ latencyHint: 'interactive' });
+            }
+            if (player.workletState !== 'idle') return;
+            if (!player.context.audioWorklet || !globalThis.AudioWorkletNode) {
+                player.workletState = 'fallback';
+                return;
+            }
+            player.workletState = 'loading';
+            const moduleUrl = new URL('doom-audio-worklet.js', document.baseURI).href;
+            player.context.audioWorklet.addModule(moduleUrl).then(() => {
+                if (player.closed) return;
+                player.node = new AudioWorkletNode(player.context, 'doom-stream', {
+                    numberOfInputs: 0,
+                    numberOfOutputs: 1,
+                    outputChannelCount: [2],
+                });
+                player.node.connect(player.context.destination);
+                player.workletState = 'ready';
+                player.flushPending();
+                console.info('Doom audio: AudioWorklet streaming at ' + player.context.sampleRate + ' Hz');
+            }).catch(error => {
+                if (player.closed) return;
+                player.workletState = 'fallback';
+                player.flushPending();
+                console.warn('Doom AudioWorklet unavailable; using scheduled buffers: ' + error);
+            });
+        };
         player.resume = () => {
+            player.ensureContext();
             if (player.active && player.context?.state === 'suspended') {
                 player.context.resume().then(() => {
                     if (!player.reportedRunning) {
@@ -77,6 +145,21 @@ private class WebAudioSink(
                         player.reportedRunning = true;
                     }
                 });
+            }
+        };
+        player.write = (pcm, frameCount, sampleRate) => {
+            player.ensureContext();
+            if (!player.active || player.context?.state !== 'running') return;
+            const copy = new Int16Array(frameCount * 2);
+            copy.set(pcm);
+            const message = { type: 'samples', pcm: copy, frameCount, sampleRate };
+            if (player.workletState === 'ready') {
+                player.node.port.postMessage(message, [copy.buffer]);
+            } else if (player.workletState === 'loading') {
+                player.pending.push(message);
+                if (player.pending.length > 8) player.pending.shift();
+            } else {
+                player.scheduleFallback(copy, frameCount, sampleRate);
             }
         };
         window.addEventListener('pointerdown', player.resume, true);
@@ -93,6 +176,8 @@ private external fun createWebAudioPlayer(): JsAny
             player.resume();
         } else if (player.context) {
             player.nextTime = 0;
+            player.pending.length = 0;
+            player.node?.port.postMessage({ type: 'reset' });
             player.context.suspend();
         }
     }""",
@@ -104,30 +189,8 @@ private external fun setWebAudioActive(
 
 @JsFun(
     """(player, pcmPointer, frameCount, sampleRate) => {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (!player.context) player.context = new AudioContext({ latencyHint: 'interactive' });
-        const context = player.context;
-        if (context.state === 'running' && !player.reportedRunning) {
-            console.info('Doom audio running at ' + context.sampleRate + ' Hz stereo');
-            player.reportedRunning = true;
-        }
-        if (!player.active || context.state !== 'running') return;
-
         const pcm = new Int16Array(wasmExports.memory.buffer, pcmPointer, frameCount * 2);
-        const buffer = context.createBuffer(2, frameCount, sampleRate);
-        const left = buffer.getChannelData(0);
-        const right = buffer.getChannelData(1);
-        for (let frame = 0, sample = 0; frame < frameCount; frame++) {
-            left[frame] = pcm[sample++] / 32768;
-            right[frame] = pcm[sample++] / 32768;
-        }
-
-        const source = context.createBufferSource();
-        source.buffer = buffer;
-        source.connect(context.destination);
-        const startTime = Math.max(player.nextTime, context.currentTime + 0.04);
-        source.start(startTime);
-        player.nextTime = startTime + buffer.duration;
+        player.write(pcm, frameCount, sampleRate);
     }""",
 )
 private external fun writeWebAudio(
@@ -141,6 +204,10 @@ private external fun writeWebAudio(
     """(player) => {
         window.removeEventListener('pointerdown', player.resume, true);
         window.removeEventListener('keydown', player.resume, true);
+        player.closed = true;
+        player.pending.length = 0;
+        player.node?.port.postMessage({ type: 'reset' });
+        player.node?.disconnect();
         if (player.context) player.context.close();
         player.active = false;
         player.nextTime = 0;
