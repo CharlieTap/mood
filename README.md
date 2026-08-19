@@ -58,23 +58,48 @@ Graphics are organised by the role each component plays in the frame pipeline:
   effects independently of the selected upscaler.
 
 
-I initially wanted to have just one renderer backed by WebGPU, but support is not quite
-at 100% across web and android, so I've added a conventional fallback for each of the
-platforms. There's a likely near future where Chasm supports the Component Model and we
-can bake the WebGPU calls into the Wasm binary itself rather than adapting them.
+I initially wanted to have just one graphics backend powered by WebGPU, but support is not
+quite at 100% across web and android, so I've added a conventional fallback for each of the
+platforms. The Wasm binary itself does not contain wasi-webgpu calls and instead we expose
+functions from the doom engine and adapt them ourselves onto the platform webgpu apis. There's
+a likely near future where Chasm supports the Component Model and we can bake the WebGPU calls
+into the Wasm binary itself. Meaning that a good portion of this codebase would not be needed.
 
 Chasm can maintain a solid 35 fps, but only at the original 320 x 200 resolution as the cost
 of both the game simulation and audio is taxing for an interpreter... especially one that
 is constrained from using direct threaded interpretation. But the GPU has plenty of
-headroom, so I've ported (well Codex did anyway) FSR-1 to WebGPU. There is also a very cool
-neural network based upscaler which is able to leverage WebNN you can enable this in chrome 
-with:
+headroom, so I've added a couple of different upscalers:
+
+- FSR1
+
+I've ported (well Codex did anyway) FSR 1 to WebGPU. It scales the original frame directly
+to the size of your viewport by examining neighbouring pixels, following the direction of
+edges and then sharpening. This produces a cleaner image at almost any resolution, although 
+it cannot recover detail that is not present in the source.
+
+- ESPCN
+
+ESPCN is a neural network based upscaler which performs a learned 3x reconstruction to
+960 x 600. Despite producing a lower resolution than FSR 1 can, its output can look more
+detailed and accurate because the network has learned how image features should be
+reconstructed rather than relying only on a spatial filter.
+
+This upscaler can be adapted to run on WebGPU or WebNN, and even when it runs on WebNN you
+can choose to run the computation on the gpu or npu. I found the npu to not be a natural fit
+for this solution however as you end up having to copy more as move memory through the cpu
+back to the gpu. 
+
+On web by default we run ESPCN on WebGPU, if you want to try the WebNN path, enable the following 
+experimental flag in Chrome:
 
 ```text
 chrome://flags/#web-machine-learning-neural-network
 ```
 
-You SHOULD absolutely play with the settings, there's some very cool things you can enable.
+On Android ESPCN is disabled despite it actually working with WebGPU, I couldn't get it working at 
+any reasonable framerate on my aging Pixel :(.
+
+All of these things and more can be enabled in settings.
 
 ## How to play?
 
